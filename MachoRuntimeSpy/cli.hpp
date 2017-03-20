@@ -1,7 +1,6 @@
 #ifndef cli_hpp
 #define cli_hpp
 
-#include <iostream>
 
 #include <stdio.h>
 #include <readline/readline.h>
@@ -16,10 +15,13 @@
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
+bool GLOBAL_DEBUG = false;
+
 #define xwarn(str) printf(YEL "[!] " "%s" "\n" RESET, str)
-#define xdebug(X) {printf(RESET "[*] "); X; printf("\n");}
+#define xdebug(X) {if(GLOBAL_DEBUG){printf(RESET "[*] "); X; printf("\n");}}
 #define xerror(str) printf(RED "[!] " "%s" "\n" RESET, str)
-#define xinfo(str) printf(GRN "[*] " "%s" "\n" RESET, str)
+//#define xinfo(str) printf(GRN "[*] " "%s" "\n" RESET, str)
+#define xdebug(str) {printf(RESET "[*] "); X; printf("\n");}
 
 void process_command();
 void print_welcome();
