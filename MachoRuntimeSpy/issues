@@ -1,0 +1,2 @@
+1. xcode include "linenoise"
+    set Target -> Build Settings -> Enable Modules(C and Objective-C) No
