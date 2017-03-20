@@ -17,7 +17,7 @@
 
 #include <stdbool.h> // bool type
 
-oid ptrace_attach(int pid);
+void ptrace_attach(int pid);
 void ptrace_cont(int pid);
 void ptrace_detach(int pid);
 bool ptrace_read(int pid, unsigned long addr, void *data, unsigned int len);

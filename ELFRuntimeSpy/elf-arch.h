@@ -62,8 +62,9 @@ typedef struct elf_rt_input
 
 typedef struct elf_arch
 {
-    ElfW(Ehdr) * ehdr;
-    ElfW(Phdr) * phdr;
+    ElfW(Ehdr) *ehdr;
+    ElfW(Phdr) *phdr;
+    ElfW(Shdr) *shdr;
 } elf_arch_t;
 
 // runtime elf file
@@ -89,9 +90,12 @@ bool parse_elf(elf_rt_t *target);
 
 bool parse_header(elf_rt_t *target);
 
-bool parse_program_headers(elf_rt_t *target);
+bool parse_segment_headers(elf_rt_t *target);
 
 bool parse_segments(elf_rt_t *target);
+
+bool parse_section_headers(elf_rt_t *target);
+bool parse_sections(elf_rt_t *target);
 
 bool parse_PT_DYNAMIC(dyn_info_t *dyninfo, elf_rt_input_t input, long dyn_addr);
 

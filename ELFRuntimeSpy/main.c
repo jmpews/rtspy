@@ -1,4 +1,4 @@
-#include "elf-parse.h"
+#include "elf-arch.h"
 #include "utils.h"
 #include "cli.h"
 
@@ -15,10 +15,11 @@ int main(int argc, char *argv[])
     print_welcome();
 
     ptrace_attach(pid);
-    xdebug(("attached to pid %d", pid));
+    xdebug(printf("attached to pid %d", pid));
     elf_rt_t target;
     set_pid(&target, pid);
     parse_elf(&target);
+    print_elf(&target);
     ptrace_detach(pid);
 
 }

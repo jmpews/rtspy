@@ -25,10 +25,13 @@ elf_rt_read_string(elf_rt_input_t input, long addr)
 void print_elf(elf_rt_t *target)
 {
     dyn_info_t *dyninfo = &(target->dyn);
-    xinfo("start dump runtime infomation");
+    elf_arch_t *arch = &(target->elf);
+    xinfo("start dump runtime infomation...");
     xinfo("dumping header...");
-    xinfo("dumping dynamic...")
-    xdebug(printf("\tdynsym: 0x%x\n"
+    xdebug(printf("elf info: \n\tentry-point: 0x%x",
+                arch->ehdr->e_entry));
+    xinfo("dumping dynamic...");
+    xdebug(printf("dynamic info: \n\tdynsym: 0x%x\n"
         "\tdynstr: 0x%x\n"
         "\tgnuhash: 0x%x\n"
         "\tnbuckets: %d\n"
@@ -48,11 +51,51 @@ bool parse_header(elf_rt_t *target)
     ElfW(Ehdr) *ehdr = malloc(sizeof(ElfW(Ehdr)));
     elf_rt_off_read(target->input, 0, ehdr, sizeof(ElfW(Ehdr)));
     target->elf.ehdr = ehdr;
-    parse_program_headers(target);
+    parse_segment_headers(target);
     return true;
 }
 
-bool parse_program_headers(elf_rt_t *target)
+/* section headers won't be load at runtime  */
+bool parse_section_headers(elf_rt_t *target)
+{
+    ElfW(Ehdr) *ehdr = target->elf.ehdr;
+    long shdr_off = 0;
+    ElfW(Shdr) * shdrs, *tmp;
+    unsigned int shnum = ehdr->e_shnum;
+    shdr_off = ehdr->e_shoff;
+    xdebug(printf("section table address: 0x%x", shdr_off));
+    shdrs = tmp = (ElfW(Shdr) *)malloc(shnum * sizeof(ElfW(Shdr)));
+    for(int i = 0; i <shnum; i++)
+    {
+
+        elf_rt_off_read(target->input, shdr_off, (long)tmp, sizeof(ElfW(Shdr)));
+        shdr_off += sizeof(ElfW(Shdr));
+        tmp++;
+    }
+    target->elf.shdr = shdrs;
+    return true;
+}
+
+bool parse_sections(elf_rt_t *target)
+{
+    ElfW(Ehdr) *ehdr = target->elf.ehdr;
+    ElfW(Shdr) *shdr = target->elf.shdr;
+    unsigned int shnum = ehdr->e_shnum;
+    for (int i = 0; i < shnum; i++)
+    {
+        switch (shdr->sh_type)
+        {
+        case SHT_DYNAMIC:
+            xdebug(printf("dynamic addr: 0x%x", shdr->sh_addr));
+            break;
+        default:
+            break;
+        }
+        shdr++;
+    }
+}
+
+bool parse_segment_headers(elf_rt_t *target)
 {
     ElfW(Ehdr) *ehdr = target->elf.ehdr;
     long phdr_off = 0;
@@ -71,7 +114,6 @@ bool parse_program_headers(elf_rt_t *target)
     target->elf.phdr = phdrs;
     return true;
 }
-
 bool parse_segments(elf_rt_t *target)
 {
     ElfW(Ehdr) *ehdr = target->elf.ehdr;
@@ -296,6 +338,6 @@ long find_symbol(elf_rt_t *target, char *sym_name, char *lib_name)
         }
     }
 
-    xdebug(("not found \'%s\'", sym_name);
+    xdebug(printf("not found \'%s\'", sym_name));
     return 0;
 }
