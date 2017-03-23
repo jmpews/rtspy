@@ -7,4 +7,5 @@
 
 #define DEBUG 1
 
+#define GLOBAL_DEBUG false
 #endif

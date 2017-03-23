@@ -170,4 +170,6 @@ namespace macho {
         input_rt_t m_input;
     };
 }
+
+static macho::MachoRT *mrt;
 #endif

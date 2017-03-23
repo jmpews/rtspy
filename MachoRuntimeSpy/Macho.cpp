@@ -1,6 +1,7 @@
 #include "Macho.hpp"
 #include "utils.hpp"
 #include "cli.hpp"
+#include "rtspy.hpp"
 
 namespace macho {
     MachoFD::MachoFD() {
@@ -74,7 +75,7 @@ namespace macho {
     }
 
     bool MachoFD::parse_macho() {
-        xinfo("start dump macho:");
+        xinfo(printf("start dump macho:"));
         if (!parse_header())
             return false;
         if (m_isUniversal)
@@ -98,7 +99,7 @@ namespace macho {
                 m_header64 = (struct mach_header_64 *) malloc(sizeof(struct mach_header_64));
                 if (!macho_read(m_input.baseAddr, m_header64, sizeof(struct mach_header_64)))
                     return false;
-                xinfo("Arch-64");
+                xinfo(printf("Arch-64"));
                 break;
 
             case FAT_CIGAM:
@@ -107,7 +108,7 @@ namespace macho {
                 m_fat_header = (struct fat_header *) malloc(sizeof(struct fat_header));
                 if (!macho_read(m_input.baseAddr, m_fat_header, sizeof(struct fat_header)))
                     return false;
-                xinfo("Arch-fat");
+                xinfo(printf("Arch-fat"));
                 break;
 
             default:
@@ -329,7 +330,7 @@ namespace macho {
             if (macho_read(addr, &ch, 1)) {
                 m_load_addr = addr;
                 m_input.baseAddr = addr;
-                xdebug(printf("macho load at 0x%lx", addr));
+                xinfo(printf("macho load at 0x%lx", addr));
                 return true;
             }
             addr += search_block_size;
@@ -343,7 +344,7 @@ namespace macho {
             return false;
         if (!searchBinLoadAddress())
             return false;
-        xinfo("start dump macho:");
+        xinfo(printf("start dump macho:"));
         if (!parse_header())
             return false;
         parse_load_commands();
@@ -361,7 +362,7 @@ namespace macho {
                 m_header64 = (struct mach_header_64 *) malloc(sizeof(struct mach_header_64));
                 if (!macho_read(m_load_addr, m_header64, sizeof(struct mach_header_64)))
                     return false;
-                xinfo("Arch-64");
+                xinfo(printf("Arch-64"));
                 break;
             default:
                 xerror("only support x86_64.");
@@ -457,7 +458,7 @@ namespace macho {
     bool MachoRT::parse_LC_LOAD_DYLINKER(load_command_info_t *load_cmd_info) {
         struct dylinker_command *dy_cmd = (struct dylinker_command *) load_cmd_info->cmd_info;
         m_dyld_path = macho_read_string(load_cmd_info->cmd_addr + dy_cmd->name.offset);
-        xdebug(printf("dyld path: %s.", m_dyld_path));
+        xinfo(printf("dyld path: %s.", m_dyld_path));
         return true;
     }
 
@@ -467,8 +468,8 @@ namespace macho {
         m_symtab_addr = m_link_edit_bias + sym_cmd->symoff;
         m_strtab_addr = m_link_edit_bias + sym_cmd->stroff;
 
-        xdebug(printf("string table addr: 0x%lx", m_strtab_addr));
-        xdebug(printf("symbol table addr: 0x%lx", m_strtab_addr));
+        xinfo(printf("string table addr: 0x%lx", m_strtab_addr));
+        xinfo(printf("symbol table addr: 0x%lx", m_strtab_addr));
 
         struct nlist_64 *nl;
         nl = (struct nlist_64 *) malloc(sizeof(struct nlist_64));
@@ -490,7 +491,7 @@ namespace macho {
                     free(sym_name);
                 } else {
                     // Generate an interrupt
-                    xwarn("symbol read error");
+                    xerror("symbol read error at parse_LC_SYMTAB");
                 }
             }
             addr += sizeof(struct nlist_64);
@@ -589,7 +590,7 @@ namespace macho {
 
         addr = start_addr;
 
-        xdebug(printf("start dyld search at 0x%lx", addr));
+        xinfo(printf("start dyld search at 0x%lx", addr));
 
         while (end_addr > addr) {
             if (macho_read(addr, buf, sizeof(uint32_t))) {
@@ -617,7 +618,7 @@ namespace macho {
         dyld.m_input.task = m_input.task;
         dyld.m_input.baseAddr = addr;
 
-        xdebug(printf("dyld load address check at 0x%lx", addr));
+        xinfo(printf("dyld load address check at 0x%lx", addr));
         if (!dyld.parse_header())
             return false;
         if (dyld.m_is64bit) {
