@@ -13,7 +13,7 @@ MAC_LDFLAGS = -L$(MAC_LIB_DIR)
 MAC_LIBS = -lreadline -lncurses
 MAC_GCC_BIN = `xcrun --sdk macosx --find g++`
 MAC_SDK = `xcrun --sdk macosx --show-sdk-path`
-MAC_GCC_BASE = $(MAC_GCC_BIN) -Os $(MAC_CXXFLAGS) $(MAC_LDFLAGS) $(MAC_LIBS) -Wimplicit -isysroot $(MAC_SDK)
+MAC_GCC_BASE = $(MAC_GCC_BIN) -g $(MAC_CXXFLAGS) $(MAC_LDFLAGS) $(MAC_LIBS) -Wimplicit -isysroot $(MAC_SDK)
 export MAC_GCC_UNIVERSAL = $(MAC_GCC_BASE) -arch x86_64
 endif
 
@@ -31,7 +31,7 @@ IOS_LIBS = -lreadline -lncurses
 
 IOS_GCC_BIN = `xcrun --sdk iphoneos --find g++`
 IOS_SDK = `xcrun --sdk iphoneos --show-sdk-path`
-IOS_GCC_BASE=$(IOS_GCC_BIN) -Os $(IOS_CXXFLAGS) $(IOS_LDFLAGS) $(IOS_LIBS) -Wimplicit -isysroot $(IOS_SDK)
+IOS_GCC_BASE=$(IOS_GCC_BIN) -g $(IOS_CXXFLAGS) $(IOS_LDFLAGS) $(IOS_LIBS) -Wimplicit -isysroot $(IOS_SDK)
 export IOS_GCC_UNIVERSAL = $(IOS_GCC_BASE) -arch armv7 -arch arm64
 endif
 
@@ -46,11 +46,11 @@ mac:
 	@echo $(MAC_GCC_UNIVERSAL) $(SOURCES) -o rtspy
 	@$(MAC_GCC_UNIVERSAL) $(SOURCES) -o rtspy
 	@cp rtspy output/mac/rtspy
-	@mv rtspy rtpsy-mac
+	@mv rtspy rtspy-mac
 
 ios:
 	mkdir -p output/ios
 	@echo $(IOS_GCC_UNIVERSAL) $(SOURCES) -o rtspy
 	$(IOS_GCC_UNIVERSAL) $(SOURCES) -o rtspy
 	@cp rtspy output/ios/rtspy
-	@mv rtspy rtpsy-ios
+	@mv rtspy rtspy-ios

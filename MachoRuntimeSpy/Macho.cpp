@@ -5,7 +5,7 @@
 
 namespace macho {
     MachoFD::MachoFD() {
-        m_isRT = false;
+        // m_vm_64_addr = 0L;
     }
 
     bool MachoFD::setPath(char *path) {
@@ -82,7 +82,6 @@ namespace macho {
             parse_universal();
         else
             parse_load_commands();
-        return false;
         return true;
     }
 
@@ -124,7 +123,7 @@ namespace macho {
 
         for (uint32_t i = 0; i < nfat; i++) {
             struct fat_arch *arch = (struct fat_arch *) malloc(sizeof(struct fat_arch));
-            macho_read(addr, arch, sizeof(struct fat_arch));
+            macho_read(addr+i*sizeof(struct fat_arch), arch, sizeof(struct fat_arch));
 
             size_t length = OSSwapBigToHostInt32(arch->size);
             MachoFD *xmacho = new MachoFD();
@@ -147,6 +146,8 @@ namespace macho {
             switch (OSSwapBigToHostInt32(xfat_arch_info->arch->cputype)) {
                 case CPU_TYPE_X86_64:
                     ((MachoFD *) (xfat_arch_info->macho))->parse_macho();
+                    //TODO: bad code!!!
+                    m_vm_64_addr = ((MachoFD *) (xfat_arch_info->macho))->m_vm_64_addr;
                     break;
                 case CPU_TYPE_ARM64:
                     ((MachoFD *) (xfat_arch_info->macho))->parse_macho();
@@ -250,7 +251,7 @@ namespace macho {
 
         if (strcmp(seg_cmd_64->segname, "__TEXT") == 0) {
             m_vm_64_addr = seg_cmd_64->vmaddr;
-            xdebug(printf("segment vm_addr: 0x%lx", m_vm_64_addr));
+            xinfo(printf("__TEXT segment vm_addr: 0x%lx", m_vm_64_addr));
         }
         xdebug(printf("segment: %s's vmaddr_64: 0x%lx", seg_cmd_64->segname, seg_cmd_64->vmaddr));
 
@@ -590,7 +591,7 @@ namespace macho {
 
         addr = start_addr;
 
-        xinfo(printf("start dyld search at 0x%lx", addr));
+        xinfo(printf("start dyld search range(0x%lx, 0x%lx).", start_addr, end_addr));
 
         while (end_addr > addr) {
             if (macho_read(addr, buf, sizeof(uint32_t))) {
