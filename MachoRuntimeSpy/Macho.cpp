@@ -545,7 +545,8 @@ namespace macho {
             macho_read(addr, sect, sizeof(section_64));
 
             xdebug(printf("\tsection: %s's vmaddr: 0x%lx", sect->sectname, addr));
-
+            if(!strcmp(sect->sectname, "__objc_classlist"))
+                printf("hello classlist\n");
             seg_cmd_64_info->section_64_infos.push_back(sect);
             //TODO
             //section_64_infos.push_back(section);
