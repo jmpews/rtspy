@@ -38,3 +38,18 @@ RTspy - macOS/IOS (1.0.0) - by jmpews@gmail.com
 #### Make
 
 #### Usage
+
+#### Update Log
+
+```
+# 2017.03.29 haha... it can dump class and method, but just demo, need perfect.
+--------------------------------------------------------------
+RTspy - macOS/IOS (1.0.0) - by jmpews@gmail.com
+--------------------------------------------------------------
+>> attach 2754
+[*] macho load at 0x100000000
+[*] start dump macho...
+[*] dump bin arch-64
+[*] dumping class 'MyObject'
+[*]     method name 'printt:'
+```
