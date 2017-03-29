@@ -38,18 +38,3 @@ RTspy - macOS/IOS (1.0.0) - by jmpews@gmail.com
 [+] DyldImageLoadAddress: 0x11c2d6000
 >>
 ```
-
-#### Update Log
-
-```
-# 2017.03.29 可以进行初步的class及其method的dump
---------------------------------------------------------------
-RTspy - macOS/IOS (1.0.0) - by jmpews@gmail.com
---------------------------------------------------------------
->> attach 2754
-[*] macho load at 0x100000000
-[*] start dump macho...
-[*] dump bin arch-64
-[*] dumping class 'MyObject'
-[*]     method name 'printt:'
-```
