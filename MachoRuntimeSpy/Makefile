@@ -8,12 +8,12 @@ MAC_INCLUDE_DIR = $(abspath thirdparty/readline/mac/include)
 MAC_LIB_DIR = $(abspath thirdparty/readline/mac/lib)
 MAC_CFLAGS =
 # http://hanjianwei.com/2013/01/27/abi-compatibility-between-c-plus-plus-11-and-c-plus-plus-98/
-MAC_CXXFLAGS = $(MAC_CFLAGS) -I$(MAC_INCLUDE_DIR) -stdlib=libc++ -std=c++11
+MAC_CXXFLAGS = $(MAC_CFLAGS) -I$(MAC_INCLUDE_DIR) -stdlib=libc++ -std=c++11 -O0 -gmodules
 MAC_LDFLAGS = -L$(MAC_LIB_DIR)
 MAC_LIBS = -lreadline -lncurses
-MAC_GCC_BIN = `xcrun --sdk macosx --find g++`
+MAC_GCC_BIN = `xcrun --sdk macosx --find clang++`
 MAC_SDK = `xcrun --sdk macosx --show-sdk-path`
-MAC_GCC_BASE = $(MAC_GCC_BIN) -g $(MAC_CXXFLAGS) $(MAC_LDFLAGS) $(MAC_LIBS) -Wimplicit -isysroot $(MAC_SDK)
+MAC_GCC_BASE = $(MAC_GCC_BIN) -g $(MAC_CXXFLAGS) $(MAC_LDFLAGS) $(MAC_LIBS) -isysroot $(MAC_SDK)
 export MAC_GCC_UNIVERSAL = $(MAC_GCC_BASE) -arch x86_64
 endif
 
@@ -46,7 +46,7 @@ mac:
 	@echo $(MAC_GCC_UNIVERSAL) $(SOURCES) -o rtspy
 	@$(MAC_GCC_UNIVERSAL) $(SOURCES) -o rtspy
 	@cp rtspy output/mac/rtspy
-	@mv rtspy rtspy-mac
+	# @mv rtspy rtspy-mac
 
 ios:
 	mkdir -p output/ios

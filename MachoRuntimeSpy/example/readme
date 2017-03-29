@@ -1,0 +1,15 @@
+## exmaple
+
+#### target - C language
+
+```
+test_target.c
+clang test_target.c -o test_target_c
+```
+
+#### target - OC langueage
+
+```
+target_target.m
+clang -framework Foundation test_target.m -o test_target_oc -Wl,-no_pie
+```

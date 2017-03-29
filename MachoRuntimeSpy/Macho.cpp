@@ -1,7 +1,10 @@
 #include "Macho.hpp"
+#include "objc.hpp"
 #include "utils.hpp"
 #include "cli.hpp"
-#include "rtspy.hpp"
+#include "Zz.hpp"
+
+#include <csignal>
 
 namespace macho {
     MachoFD::MachoFD() {
@@ -36,7 +39,7 @@ namespace macho {
 
     bool MachoFD::macho_read(unsigned long addr, void *data, unsigned long len) {
         if (addr - (unsigned long) m_input.data > m_input.length) {
-            xerror("macho_read over.");
+            Serror("macho_read over.");
             return false;
         }
         memcpy(data, (void *) addr, len);
@@ -68,14 +71,14 @@ namespace macho {
 
     bool MachoFD::checkInitialization() {
         if (m_input.fd == 0) {
-            xerror("MachoRT must be init.");
+            Serror("MachoRT must be init.");
             return false;
         }
         return true;
     }
 
     bool MachoFD::parse_macho() {
-        xinfo(printf("start dump macho:"));
+        Sinfo("start dump macho...");
         if (!parse_header())
             return false;
         if (m_isUniversal)
@@ -98,7 +101,7 @@ namespace macho {
                 m_header64 = (struct mach_header_64 *) malloc(sizeof(struct mach_header_64));
                 if (!macho_read(m_input.baseAddr, m_header64, sizeof(struct mach_header_64)))
                     return false;
-                xinfo(printf("Arch-64"));
+                Sinfo("dump macho arch-64");
                 break;
 
             case FAT_CIGAM:
@@ -107,11 +110,11 @@ namespace macho {
                 m_fat_header = (struct fat_header *) malloc(sizeof(struct fat_header));
                 if (!macho_read(m_input.baseAddr, m_fat_header, sizeof(struct fat_header)))
                     return false;
-                xinfo(printf("Arch-fat"));
+                Sinfo("dump macho arch-fat");
                 break;
 
             default:
-                xerror("only support x86_64.");
+                Serror("only support x86_64.");
                 return false;
         }
         return true;
@@ -153,7 +156,7 @@ namespace macho {
                     ((MachoFD *) (xfat_arch_info->macho))->parse_macho();
                     break;
                 default:
-                    xerror("only support x86_64.");
+                    Serror("only support x86_64.");
                     break;
             }
         }
@@ -168,7 +171,7 @@ namespace macho {
             ncmds = m_header64->ncmds;
             addr += sizeof(mach_header_64); // load_command addr
         } else {
-            xerror("only support x86_64.");
+            Serror("only support x86_64.");
             return false;
         }
 
@@ -251,9 +254,9 @@ namespace macho {
 
         if (strcmp(seg_cmd_64->segname, "__TEXT") == 0) {
             m_vm_64_addr = seg_cmd_64->vmaddr;
-            xinfo(printf("__TEXT segment vm_addr: 0x%lx", m_vm_64_addr));
+            Xinfo("__TEXT segment vm_addr: 0x%lx", m_vm_64_addr);
         }
-        xdebug(printf("segment: %s's vmaddr_64: 0x%lx", seg_cmd_64->segname, seg_cmd_64->vmaddr));
+        Xdebug("segment: %s's vmaddr_64: 0x%llx", seg_cmd_64->segname, seg_cmd_64->vmaddr);
 
 
         /* iterate dump section */
@@ -263,7 +266,7 @@ namespace macho {
             sect = (struct section_64 *) malloc(sizeof(struct section_64));
             macho_read(addr, sect, sizeof(section_64));
 
-            xdebug(printf("\tsection: %s's vmaddr: 0x%lx", sect->sectname, addr));
+            Xdebug("\tsection: %s's vmaddr: 0x%lx", sect->sectname, addr);
 
             seg_cmd_64_info->section_64_infos.push_back(sect);
             //TODO
@@ -313,7 +316,7 @@ namespace macho {
 
     bool MachoRT::checkInitialization() {
         if (m_input.pid == 0) {
-            xerror("MachoRT must be init.");
+            Serror("MachoRT must be init.");
             return false;
         }
         return true;
@@ -331,12 +334,12 @@ namespace macho {
             if (macho_read(addr, &ch, 1)) {
                 m_load_addr = addr;
                 m_input.baseAddr = addr;
-                xinfo(printf("macho load at 0x%lx", addr));
+                Xinfo("macho load at 0x%lx", addr);
                 return true;
             }
             addr += search_block_size;
         }
-        xerror("searchBinLoadAddress failed.");
+        Serror("searchBinLoadAddress failed.");
         return false;
     }
 
@@ -345,7 +348,7 @@ namespace macho {
             return false;
         if (!searchBinLoadAddress())
             return false;
-        xinfo(printf("start dump macho:"));
+        Sinfo("start dump macho...");
         if (!parse_header())
             return false;
         parse_load_commands();
@@ -363,10 +366,10 @@ namespace macho {
                 m_header64 = (struct mach_header_64 *) malloc(sizeof(struct mach_header_64));
                 if (!macho_read(m_load_addr, m_header64, sizeof(struct mach_header_64)))
                     return false;
-                xinfo(printf("Arch-64"));
+                Sinfo("dump bin arch-64");
                 break;
             default:
-                xerror("only support x86_64.");
+                Serror("only support x86_64.");
                 return false;
         }
         return true;
@@ -380,7 +383,7 @@ namespace macho {
             ncmds = m_header64->ncmds;
             addr += sizeof(mach_header_64); // load_command addr
         } else {
-            xerror("only support x86_64.");
+            Serror("only support x86_64.");
             return false;
         }
 
@@ -459,7 +462,7 @@ namespace macho {
     bool MachoRT::parse_LC_LOAD_DYLINKER(load_command_info_t *load_cmd_info) {
         struct dylinker_command *dy_cmd = (struct dylinker_command *) load_cmd_info->cmd_info;
         m_dyld_path = macho_read_string(load_cmd_info->cmd_addr + dy_cmd->name.offset);
-        xinfo(printf("dyld path: %s.", m_dyld_path));
+        Xinfo("dyld path: %s.", m_dyld_path);
         return true;
     }
 
@@ -469,8 +472,8 @@ namespace macho {
         m_symtab_addr = m_link_edit_bias + sym_cmd->symoff;
         m_strtab_addr = m_link_edit_bias + sym_cmd->stroff;
 
-        xinfo(printf("string table addr: 0x%lx", m_strtab_addr));
-        xinfo(printf("symbol table addr: 0x%lx", m_strtab_addr));
+        Xinfo("string table addr: 0x%lx", m_strtab_addr);
+        Xinfo("symbol table addr: 0x%lx", m_strtab_addr);
 
         struct nlist_64 *nl;
         nl = (struct nlist_64 *) malloc(sizeof(struct nlist_64));
@@ -481,7 +484,7 @@ namespace macho {
                 char *sym_name = macho_read_string(m_strtab_addr + nl->n_un.n_strx);
                 if (sym_name) {
                     if (!strcmp(sym_name, "_dlopen")) {
-                        xdebug(printf("found function _dlopen: 0x%lx", m_load_addr + nl->n_value));
+                        Xdebug("found function _dlopen: 0x%llx", m_load_addr + nl->n_value);
                     }
                     //                if(nl->n_type == N_FUN) {
                     //                    std::cout << "[+] function: " << sym_name << ", address: 0x" << std::hex << nl->n_value << std::endl;
@@ -492,7 +495,7 @@ namespace macho {
                     free(sym_name);
                 } else {
                     // Generate an interrupt
-                    xerror("symbol read error at parse_LC_SYMTAB");
+                    Serror("symbol read error at parse_LC_SYMTAB");
                 }
             }
             addr += sizeof(struct nlist_64);
@@ -534,7 +537,7 @@ namespace macho {
             m_load_end_addr = seg_cmd_64->vmaddr + m_aslr_slide + seg_cmd_64->vmsize;
         }
 
-        xdebug(printf("segment: %s's vmaddr: 0x%lx", seg_cmd_64->segname, seg_cmd_64->vmaddr + m_aslr_slide));
+        Xdebug("segment: %s's vmaddr: 0x%llx", seg_cmd_64->segname, seg_cmd_64->vmaddr + m_aslr_slide);
 
 
         /* iterate dump section */
@@ -544,9 +547,15 @@ namespace macho {
             sect = (struct section_64 *) malloc(sizeof(struct section_64));
             macho_read(addr, sect, sizeof(section_64));
 
-            xdebug(printf("\tsection: %s's vmaddr: 0x%lx", sect->sectname, addr));
-            if(!strcmp(sect->sectname, "__objc_classlist"))
+            Xdebug("\tsection: %s's vmaddr: 0x%lx", sect->sectname, addr);
+            if(!strcmp(sect->sectname, "__objc_classlist__DATA")) {
+                unsigned long class_list_addr;
+                macho_read(sect->addr + m_aslr_slide, &class_list_addr, sizeof(unsigned long));
+                unsigned long class_list_0_addr = class_list_addr;
+                parse_CLASS(class_list_0_addr);
                 printf("hello classlist\n");
+
+            }
             seg_cmd_64_info->section_64_infos.push_back(sect);
             //TODO
             //section_64_infos.push_back(section);
@@ -554,6 +563,35 @@ namespace macho {
         }
 
         m_segment_command_64_infos.push_back(seg_cmd_64_info);
+        return true;
+    }
+
+    bool MachoRT::parse_CLASS(unsigned long addr) {
+        struct objc::objc_class *xobjc;
+        xobjc = (struct objc::objc_class *)malloc(sizeof(struct objc::objc_class));
+        macho_read(addr, xobjc, sizeof(struct objc::objc_class));
+
+        unsigned long objc_class_data_addr = (unsigned long)objc::get_objc_class_data_addr(xobjc->bits);
+        struct objc::class_rw_t * objc_data_rw;
+        objc_data_rw = (struct objc::class_rw_t *)malloc(sizeof(struct objc::class_rw_t));
+        macho_read(objc_class_data_addr, objc_data_rw, sizeof(struct objc::class_rw_t));
+
+        struct objc::class_ro_t * objc_data_ro;
+        objc_data_ro = (struct objc::class_ro_t *)malloc(sizeof(struct objc::class_ro_t));
+        macho_read((unsigned long)(objc_data_rw->ro), objc_data_ro, sizeof(struct objc::class_ro_t));
+
+        char *class_name = macho_read_string((unsigned long)(objc_data_ro->name));
+        Xinfo("dumping class \'%s\'", class_name);
+
+        objc::method_list_t * class_method_list;
+        class_method_list = (objc::method_list_t *)malloc(sizeof(objc::method_list_t));
+        macho_read((unsigned long)(objc_data_ro->baseMethodList), class_method_list, sizeof(objc::method_list_t));
+
+        char *class_first_method_name = macho_read_string((unsigned long)((class_method_list->first).name));
+
+        Xinfo("\tmethod name \'%s\'", class_first_method_name);
+
+        std::raise(SIGABRT);
         return true;
     }
 
@@ -592,7 +630,7 @@ namespace macho {
 
         addr = start_addr;
 
-        xinfo(printf("start dyld search range(0x%lx, 0x%lx).", start_addr, end_addr));
+        Xinfo("start dyld search range(0x%lx, 0x%lx).", start_addr, end_addr);
 
         while (end_addr > addr) {
             if (macho_read(addr, buf, sizeof(uint32_t))) {
@@ -608,7 +646,7 @@ namespace macho {
             return true;
         } else {
             m_dyld_load_addr = 0;
-            xerror("searchDyldImageLoadAddress failed.");
+            Serror("searchDyldImageLoadAddress failed.");
             return false;
         }
     }
@@ -620,7 +658,7 @@ namespace macho {
         dyld.m_input.task = m_input.task;
         dyld.m_input.baseAddr = addr;
 
-        xinfo(printf("dyld load address check at 0x%lx", addr));
+        Xinfo("dyld load address check at 0x%lx", addr);
         if (!dyld.parse_header())
             return false;
         if (dyld.m_is64bit) {

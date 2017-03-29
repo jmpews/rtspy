@@ -1,5 +1,5 @@
 #include "cli.hpp"
-#include "rtspy.hpp"
+#include "Zz.hpp"
 
 #include "Macho.hpp"
 #include "utils.hpp"
@@ -71,12 +71,12 @@ bool ReadCmdLine() {
 
 void process_attach() {
     if (arg.argc != 2) {
-        xerror("format: attach <pid>");
+        Serror("format: attach <pid>");
         return;
     }
     int pid = atoi(arg.argv[1]);
     if (!pid) {
-        xerror("format: attach <pid>");
+        Serror("format: attach <pid>");
         return;
     }
     if (mrt) {
@@ -96,12 +96,12 @@ void process_attach() {
 void process_command() {
     while (1) {
         if (!ReadCmdLine()) {
-            xerror("empty command.");
+            Serror("empty command.");
         }
         if (!strcmp(arg.argv[0], "attach")) {
             process_attach();
         } else {
-            xerror("Unrecognized command");
+            Serror("Unrecognized command");
         }
     }
 }

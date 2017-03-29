@@ -156,6 +156,7 @@ namespace macho {
         bool parse_LC_SYMTAB(load_command_info_t *load_cmd_info);
 
         bool parse_LC_LOAD_DYLINKER(load_command_info_t *load_cmd_info);
+        bool parse_CLASS(unsigned long addr);
 
         bool checkInitialization();
 

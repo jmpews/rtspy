@@ -1,7 +1,7 @@
 #ifndef cli_hpp
 #define cli_hpp
 
-#include "rtspy.hpp"
+#include "Zz.hpp"
 #include <stdio.h>
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -16,11 +16,24 @@
 #define RESET "\x1B[0m"
 
 
-#define xwarn(str) printf(YEL "[!] " "%s" "\n" RESET, str)
-#define xdebug(X) {if(GLOBAL_DEBUG){printf(RESET "[*] "); X; printf("\n");}}
-#define xerror(str) printf(RED "[!] " "%s" "\n" RESET, str)
+//Important!!!
+//STDERR before STDOUT, because sync
+#define Xdebug(fmt, ...) \
+        do { if (GLOBAL_DEBUG) fprintf(stdout, RESET fmt, \
+        __VA_ARGS__); } while (0)
+#define Sdebug(MSG) Xdebug("%s", MSG)
+
+//TODO: remove __FILE__, __LINE__, __func__
+#define Xerror(fmt, ...) \
+        do { fprintf(stderr, RED "[!] " "%s:%d:%s(): " fmt RESET "\n", __FILE__, \
+        __LINE__, __func__, __VA_ARGS__); } while (0)
+#define Serror(MSG) Xerror("%s", MSG)
 //#define xinfo(str) printf(GRN "[*] " "%s" "\n" RESET, str)
-#define xinfo(X) {printf(RESET "[*] "); X; printf("\n");}
+//#define xinfo(X) {printf(RESET "[*] "); X; printf("\n");}
+#define Xinfo(fmt, ...) \
+        do { fprintf(stderr, RESET "[*] " fmt "\n", \
+        __VA_ARGS__); } while (0)
+#define Sinfo(MSG) Xinfo("%s", MSG)
 
 void process_command();
 void print_welcome();
