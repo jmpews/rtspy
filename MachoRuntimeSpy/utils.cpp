@@ -28,9 +28,10 @@ char *readTaskString(task_t t, vm_address_t addr)
     {
         return NULL;
     }
-    str = (char *)malloc(end - addr);
-    if (readTaskMemory(t, addr, str, end - addr))
+    str = (char *)malloc(end - addr + 1);
+    if (readTaskMemory(t, addr, str, end - addr + 1)) {
         return str;
+    }
 
     return NULL;
 }
