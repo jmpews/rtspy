@@ -1,5 +1,4 @@
 #include "Macho.hpp"
-#include "objc.hpp"
 #include "utils.hpp"
 #include "cli.hpp"
 #include "Zz.hpp"
@@ -549,12 +548,7 @@ namespace macho {
 
             Xdebug("\tsection: %s's vmaddr: 0x%lx", sect->sectname, addr);
             if(!strcmp(sect->sectname, "__objc_classlist__DATA")) {
-                unsigned long class_list_addr;
-                macho_read(sect->addr + m_aslr_slide, &class_list_addr, sizeof(unsigned long));
-                unsigned long class_list_0_addr = class_list_addr;
-                parse_CLASS(class_list_0_addr);
-                printf("hello classlist\n");
-
+                parse_SECT_CLASSLIST(sect);
             }
             seg_cmd_64_info->section_64_infos.push_back(sect);
             //TODO
@@ -566,32 +560,82 @@ namespace macho {
         return true;
     }
 
-    bool MachoRT::parse_CLASS(unsigned long addr) {
+    bool MachoRT::parse_SECT_CLASSLIST(struct section_64 *sect) {
+        unsigned long classlist_sect_addr, class_addr;
+        size_t len;
+        len = sizeof(unsigned long);
+        // __objc_classlist__DATA section addr
+        classlist_sect_addr = sect->addr + m_aslr_slide;
+
+        objc_class_info_t *objc_class_info = new objc_class_info_t();
+
+        unsigned int classlist_count = (sect->size) / sizeof(unsigned long);
+
+        for (unsigned int i = 0; i < classlist_count; ++i)
+        {
+            // get class address, start dump class
+            macho_read(classlist_sect_addr + i * len, &class_addr, len);
+
+            objc_class_info->class_addr = class_addr;
+            parse_CLASS(objc_class_info);
+            m_objc_class_infos.push_back(objc_class_info);
+        }
+        return true;
+    }
+
+    bool MachoRT::parse_CLASS(objc_class_info_t * objc_class_info) {
+        //result
+        unsigned long addr = objc_class_info->class_addr;
+
         struct objc::objc_class *xobjc;
         xobjc = (struct objc::objc_class *)malloc(sizeof(struct objc::objc_class));
         macho_read(addr, xobjc, sizeof(struct objc::objc_class));
 
         unsigned long objc_class_data_addr = (unsigned long)objc::get_objc_class_data_addr(xobjc->bits);
-        struct objc::class_rw_t * objc_data_rw;
-        objc_data_rw = (struct objc::class_rw_t *)malloc(sizeof(struct objc::class_rw_t));
-        macho_read(objc_class_data_addr, objc_data_rw, sizeof(struct objc::class_rw_t));
 
+        // check if realizeClass(), another word RW_REALIZED|RW_REALIZING
+        uint32_t flags;
+        macho_read(objc_class_data_addr, &flags, sizeof(uint32_t));
         struct objc::class_ro_t * objc_data_ro;
-        objc_data_ro = (struct objc::class_ro_t *)malloc(sizeof(struct objc::class_ro_t));
-        macho_read((unsigned long)(objc_data_rw->ro), objc_data_ro, sizeof(struct objc::class_ro_t));
+        if(flags & (RW_REALIZED|RW_REALIZING)) {
+            Sinfo("class has been realized");
+            struct objc::class_rw_t * objc_data_rw;
+            objc_data_rw = (struct objc::class_rw_t *)malloc(sizeof(struct objc::class_rw_t));
+            macho_read(objc_class_data_addr, objc_data_rw, sizeof(struct objc::class_rw_t));
 
+            objc_data_ro = (struct objc::class_ro_t *)malloc(sizeof(struct objc::class_ro_t));
+            macho_read((unsigned long)(objc_data_rw->ro), objc_data_ro, sizeof(struct objc::class_ro_t));
+        } else {
+            Sinfo("class not be realized");
+            objc_data_ro = (struct objc::class_ro_t *)malloc(sizeof(struct objc::class_ro_t));
+            macho_read(objc_class_data_addr, objc_data_ro, sizeof(struct objc::class_ro_t));
+        }
+
+        // start dump class name
         char *class_name = macho_read_string((unsigned long)(objc_data_ro->name));
-        Xinfo("dumping class \'%s\'", class_name);
+        if(class_name)
+            Xinfo("dumping class \'%s\', 0x%lx", class_name, (unsigned long)(objc_data_ro->name));
+        else
+            Xerror("dumping class 0x%lx name faild, may be not be used", objc_class_info->class_addr);
+        objc_class_info->class_name = class_name;
 
-        objc::method_list_t * class_method_list;
-        class_method_list = (objc::method_list_t *)malloc(sizeof(objc::method_list_t));
-        macho_read((unsigned long)(objc_data_ro->baseMethodList), class_method_list, sizeof(objc::method_list_t));
+        // start dump method
+        objc::method_list_t * objc_methods;
+        objc_methods = (objc::method_list_t *)malloc(sizeof(objc::method_list_t));
+        macho_read((unsigned long)(objc_data_ro->baseMethodList), objc_methods, sizeof(objc::method_list_t));
 
-        char *class_first_method_name = macho_read_string((unsigned long)((class_method_list->first).name));
+        unsigned long methodlist_addr;
+        //objc4-706/objc-runtime-new.h:92, please read about 'entsize_list_tt'
+        methodlist_addr = (unsigned long)(objc_data_ro->baseMethodList) + sizeof(uint32_t) * 2;
+        for (int i = 0; i < objc_methods->count; ++i)
+        {
+            objc::method_t xmethod;
+            macho_read(methodlist_addr + i * sizeof(objc::method_t), &xmethod, sizeof(objc::method_t));
+            char *method_name = macho_read_string((unsigned long)(xmethod.name));
+            Xinfo("\tmethod name \'%s\'", method_name);
+        }
 
-        Xinfo("\tmethod name \'%s\'", class_first_method_name);
-
-        std::raise(SIGABRT);
+        // std::raise(SIGABRT);
         return true;
     }
 

@@ -16,6 +16,8 @@
 #include <sys/stat.h> //stat
 #include <sys/mman.h> //mmap
 
+#include "objc.hpp"
+
 #define MACHO_LOAD_ADDRESS 0x100000000
 
 namespace macho {
@@ -47,6 +49,14 @@ namespace macho {
     } segment_command_64_info_t;
     typedef std::vector<segment_command_64_info_t *> segment_command_64_infos_t;
 
+    typedef struct objc_class_info {
+        unsigned long class_addr;
+        struct objc::objc_class *objc;
+        char *class_name;
+    } objc_class_info_t;
+
+    typedef std::vector<objc_class_info_t *> objc_class_infos_t;
+
     class Macho {
     public:
         bool m_isRT;
@@ -74,6 +84,7 @@ namespace macho {
         struct mach_header_64 *m_header64;
         load_command_infos_t m_load_command_infos;
         segment_command_64_infos_t m_segment_command_64_infos;
+        objc_class_infos_t m_objc_class_infos;
 
     private:
 
@@ -156,7 +167,10 @@ namespace macho {
         bool parse_LC_SYMTAB(load_command_info_t *load_cmd_info);
 
         bool parse_LC_LOAD_DYLINKER(load_command_info_t *load_cmd_info);
-        bool parse_CLASS(unsigned long addr);
+
+        bool parse_SECT_CLASSLIST(struct section_64 *sect);
+
+        bool parse_CLASS(objc_class_info_t * objc_class_info);
 
         bool checkInitialization();
 

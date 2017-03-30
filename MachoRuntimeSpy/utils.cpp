@@ -1,7 +1,13 @@
 #include "utils.hpp"
+#include "cli.hpp"
 
 bool readTaskMemory(task_t t, vm_address_t addr, void *buf, unsigned long len)
 {
+    if(addr <= 0)
+        Serror("memory read address < 0");
+    if(len <= 0)
+        Serror("memory read length <0");
+
     vm_size_t dataCnt = len;
     kern_return_t kr = vm_read_overwrite(t, addr, len, (vm_address_t)buf, (vm_size_t *)&dataCnt);
 
@@ -49,7 +55,10 @@ task_t pid2task(unsigned int pid)
 
 vm_address_t memorySearch(task_t task, vm_address_t start, vm_address_t end, char *data, unsigned long len)
 {
-
+    if(start <= 0)
+        Serror("memory search address < 0");
+    if(start > end)
+        Serror("memeory search end < start");
     vm_address_t addr = start;
     char *buf = (char *)malloc(len);
     while (end > addr)
