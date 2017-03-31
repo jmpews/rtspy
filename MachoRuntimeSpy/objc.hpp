@@ -9,20 +9,43 @@ namespace objc {
 #define RW_REALIZING          (1<<19)
 
     typedef void protocol_list_t;
-    typedef void ivar_list_t;
     typedef void property_list_t;
+    struct ivar_t {
+    #if __x86_64__
+        // *offset was originally 64-bit on some x86_64 platforms.
+        // We read and write only 32 bits of it.
+        // Some metadata provides all 64 bits. This is harmless for unsigned
+        // little-endian values.
+        // Some code uses all 64 bits. class_addIvar() over-allocates the
+        // offset for their benefit.
+    #endif
+        int32_t *offset;
+        const char *name;
+        const char *type;
+        // alignment is sometimes -1; use alignment() instead
+        uint32_t alignment_raw;
+        uint32_t size;
+    };
+
+   typedef struct {
+        uint32_t entsizeAndFlags;
+        uint32_t count;
+        struct ivar_t first;
+    } ivar_list_t;
 
     struct method_t {
         void *name;
         const char *types;
         void *imp;
     };
-
     typedef struct {
         uint32_t entsizeAndFlags;
         uint32_t count;
         struct method_t first;
     } method_list_t;
+
+
+
 
 #if __LP64__
     typedef uint32_t mask_t;  // x86_64 & arm64 asm are less efficient with 16-bits

@@ -640,6 +640,26 @@ namespace macho {
         } else {
             Xinfo("%s no methods.", class_name);
         }
+
+        // start dump ivars
+        if(objc_data_ro->ivars) {
+            objc::ivar_list_t * objc_ivars;
+            objc_ivars = (objc::ivar_list_t *)malloc(sizeof(objc::ivar_list_t));
+            macho_read((unsigned long)(objc_data_ro->ivars), objc_ivars, sizeof(objc::ivar_list_t));
+
+            unsigned long ivarlist_addr;
+            ivarlist_addr = (unsigned long)(objc_data_ro->ivars) + sizeof(uint32_t) * 2;
+            for (int i = 0; i < objc_ivars->count; ++i)
+            {
+                objc::ivar_t xivar;
+                macho_read(ivarlist_addr + i * sizeof(objc::ivar_t), &xivar, sizeof(objc::ivar_t));
+                char *ivar_name = macho_read_string((unsigned long)(xivar.name));
+                Xinfo("\tivar name \'%s\'", ivar_name);
+            }
+        } else {
+            Xinfo("%s no ivars.", class_name);
+        }
+
         // std::raise(SIGABRT);
         return true;
     }

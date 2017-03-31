@@ -9,11 +9,11 @@
 
 @implementation MyObject
 
-- (void) printt:(int)t {
+- (void) printt:(int)targ {
     NSLog(@"Hello, World!");
 }
 
-- (void) printtt:(int)t {
+- (void) printtt:(int)targ {
     NSLog(@"Hello, World!");
 }
 @end
