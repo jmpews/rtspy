@@ -1,6 +1,6 @@
 cmake-build-debug
 CmakeLists.txt
-rtspy.dSYM
+*.dSYM
 .idea
 .vscode
 .DS_Store

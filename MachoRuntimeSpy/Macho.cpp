@@ -153,6 +153,8 @@ namespace macho {
                     break;
                 case CPU_TYPE_ARM64:
                     ((MachoFD *) (xfat_arch_info->macho))->parse_macho();
+                    //TODO: bad code!!!
+                    m_vm_64_addr = ((MachoFD *) (xfat_arch_info->macho))->m_vm_64_addr;
                     break;
                 default:
                     Serror("only support x86_64.");
@@ -619,22 +621,25 @@ namespace macho {
             Xerror("dumping class 0x%lx name faild, may be not be used", objc_class_info->class_addr);
         objc_class_info->class_name = class_name;
 
-        // start dump method
-        objc::method_list_t * objc_methods;
-        objc_methods = (objc::method_list_t *)malloc(sizeof(objc::method_list_t));
-        macho_read((unsigned long)(objc_data_ro->baseMethodList), objc_methods, sizeof(objc::method_list_t));
+        // start dump methods
+        if(objc_data_ro->baseMethodList) {
+            objc::method_list_t * objc_methods;
+            objc_methods = (objc::method_list_t *)malloc(sizeof(objc::method_list_t));
+            macho_read((unsigned long)(objc_data_ro->baseMethodList), objc_methods, sizeof(objc::method_list_t));
 
-        unsigned long methodlist_addr;
-        //objc4-706/objc-runtime-new.h:92, please read about 'entsize_list_tt'
-        methodlist_addr = (unsigned long)(objc_data_ro->baseMethodList) + sizeof(uint32_t) * 2;
-        for (int i = 0; i < objc_methods->count; ++i)
-        {
-            objc::method_t xmethod;
-            macho_read(methodlist_addr + i * sizeof(objc::method_t), &xmethod, sizeof(objc::method_t));
-            char *method_name = macho_read_string((unsigned long)(xmethod.name));
-            Xinfo("\tmethod name \'%s\'", method_name);
+            unsigned long methodlist_addr;
+            //objc4-706/objc-runtime-new.h:92, please read about 'entsize_list_tt'
+            methodlist_addr = (unsigned long)(objc_data_ro->baseMethodList) + sizeof(uint32_t) * 2;
+            for (int i = 0; i < objc_methods->count; ++i)
+            {
+                objc::method_t xmethod;
+                macho_read(methodlist_addr + i * sizeof(objc::method_t), &xmethod, sizeof(objc::method_t));
+                char *method_name = macho_read_string((unsigned long)(xmethod.name));
+                Xinfo("\tmethod name \'%s\'", method_name);
+            }
+        } else {
+            Xinfo("%s no methods.", class_name);
         }
-
         // std::raise(SIGABRT);
         return true;
     }
@@ -684,13 +689,16 @@ namespace macho {
 
             addr += search_block_size;
         }
-
+        task_t task = m_input.task;
+        unsigned long api_dyld_addr = getDyldLoadAddress(task);
+        Xinfo("task_info() dyld_addr: 0x%lx", api_dyld_addr);
         if (addr < end_addr) {
             m_dyld_load_addr = addr;
             return true;
         } else {
             m_dyld_load_addr = 0;
             Serror("searchDyldImageLoadAddress failed.");
+
             return false;
         }
     }

@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include "cli.hpp"
+#include <mach-o/dyld_images.h>
 
 bool readTaskMemory(task_t t, vm_address_t addr, void *buf, unsigned long len)
 {
@@ -51,6 +52,32 @@ task_t pid2task(unsigned int pid)
         return 0;
     }
     return t;
+}
+
+//get dyld load address by task_info, TASK_DYLD_INFO
+vm_address_t getDyldLoadAddress(task_t task) {
+    //http://stackoverflow.com/questions/4309117/determining-programmatically-what-modules-are-loaded-in-another-process-os-x
+    kern_return_t kr;
+    task_flavor_t flavor = TASK_DYLD_INFO;
+    task_dyld_info_data_t infoData;
+    mach_msg_type_number_t task_info_outCnt = TASK_DYLD_INFO_COUNT;
+    kr = task_info(task,
+                     flavor,
+                     (task_info_t)&infoData,
+                     &task_info_outCnt
+                     );
+    if(kr){
+        Serror("getDyldLoadAddress:task_info error");
+        return 0;
+    }
+    struct dyld_all_image_infos *allImageInfos = (struct dyld_all_image_infos *)infoData.all_image_info_addr;
+    allImageInfos = (struct dyld_all_image_infos *)malloc(sizeof(struct dyld_all_image_infos));
+    if(readTaskMemory(task, infoData.all_image_info_addr, allImageInfos, sizeof(struct dyld_all_image_infos))) {
+        return (vm_address_t)(allImageInfos->dyldImageLoadAddress);
+    } else {
+        Serror("getDyldLoadAddress:readTaskMemory error");
+        return 0;
+    }
 }
 
 vm_address_t memorySearch(task_t task, vm_address_t start, vm_address_t end, char *data, unsigned long len)
